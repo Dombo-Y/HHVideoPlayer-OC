@@ -48,8 +48,9 @@
 		D10B32B429F0053600D00507 /* KxMovieGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = D10B32AA29F0053600D00507 /* KxMovieGLView.m */; };
 		D10B32B529F0053600D00507 /* KxAudioManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D10B32AB29F0053600D00507 /* KxAudioManager.m */; };
 		D10B32B629F0053600D00507 /* KxMovieDecoder.m in Sources */ = {isa = PBXBuildFile; fileRef = D10B32AF29F0053600D00507 /* KxMovieDecoder.m */; };
-		D10B32B729F0053600D00507 /* KXMovieMainViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D10B32B029F0053600D00507 /* KXMovieMainViewController.m */; };
 		D10B32B929F0056300D00507 /* MyHeartWillGoOn.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = D10B32B829F0056200D00507 /* MyHeartWillGoOn.mp4 */; };
+		D1AE07C829F146B000D2F542 /* output.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = D1AE07C729F146B000D2F542 /* output.mp4 */; };
+		D1AE07CB29F14B6C00D2F542 /* HHPlayerManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D1AE07CA29F14B6B00D2F542 /* HHPlayerManager.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -69,7 +70,6 @@
 		D10B2F8229EFB46400D00507 /* HHVideoViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HHVideoViewController.h; sourceTree = "<group>"; };
 		D10B2F8429EFB4A500D00507 /* HHAudioManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HHAudioManager.h; sourceTree = "<group>"; };
 		D10B2F8529EFB4A500D00507 /* HHAudioManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HHAudioManager.m; sourceTree = "<group>"; };
-		D10B2F8729EFB57D00D00507 /* HHAudioManagerProtocol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HHAudioManagerProtocol.h; sourceTree = "<group>"; };
 		D10B2F8929EFB85B00D00507 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		D10B2F8B29EFB86300D00507 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		D10B2F8D29EFB86800D00507 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
@@ -310,13 +310,14 @@
 		D10B32A929F0053600D00507 /* sound.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound.wav; sourceTree = "<group>"; };
 		D10B32AA29F0053600D00507 /* KxMovieGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KxMovieGLView.m; sourceTree = "<group>"; };
 		D10B32AB29F0053600D00507 /* KxAudioManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KxAudioManager.m; sourceTree = "<group>"; };
-		D10B32AC29F0053600D00507 /* KXMovieMainViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KXMovieMainViewController.h; sourceTree = "<group>"; };
 		D10B32AD29F0053600D00507 /* KxMovieViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KxMovieViewController.h; sourceTree = "<group>"; };
 		D10B32AE29F0053600D00507 /* KxMovieGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KxMovieGLView.h; sourceTree = "<group>"; };
 		D10B32AF29F0053600D00507 /* KxMovieDecoder.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KxMovieDecoder.m; sourceTree = "<group>"; };
-		D10B32B029F0053600D00507 /* KXMovieMainViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KXMovieMainViewController.m; sourceTree = "<group>"; };
 		D10B32B129F0053600D00507 /* KxAudioManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KxAudioManager.h; sourceTree = "<group>"; };
 		D10B32B829F0056200D00507 /* MyHeartWillGoOn.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = MyHeartWillGoOn.mp4; sourceTree = "<group>"; };
+		D1AE07C729F146B000D2F542 /* output.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = output.mp4; sourceTree = "<group>"; };
+		D1AE07C929F14B6B00D2F542 /* HHPlayerManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HHPlayerManager.h; sourceTree = "<group>"; };
+		D1AE07CA29F14B6B00D2F542 /* HHPlayerManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HHPlayerManager.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -395,6 +396,8 @@
 			children = (
 				D10B2F8229EFB46400D00507 /* HHVideoViewController.h */,
 				D10B2F8129EFB46400D00507 /* HHVideoViewController.m */,
+				D1AE07C929F14B6B00D2F542 /* HHPlayerManager.h */,
+				D1AE07CA29F14B6B00D2F542 /* HHPlayerManager.m */,
 				D10B2F8429EFB4A500D00507 /* HHAudioManager.h */,
 				D10B2F8529EFB4A500D00507 /* HHAudioManager.m */,
 				D10B328F29EFB9CA00D00507 /* HHVideoDecoder.h */,
@@ -403,7 +406,6 @@
 				D10B32A429EFF4F500D00507 /* HHVideoGLView.m */,
 				D10B32A029EFD51800D00507 /* HHVideoModel.h */,
 				D10B32A129EFD51800D00507 /* HHVideoModel.m */,
-				D10B2F8729EFB57D00D00507 /* HHAudioManagerProtocol.h */,
 			);
 			path = HHVideo;
 			sourceTree = "<group>";
@@ -764,8 +766,7 @@
 				D10B32AF29F0053600D00507 /* KxMovieDecoder.m */,
 				D10B32AE29F0053600D00507 /* KxMovieGLView.h */,
 				D10B32AA29F0053600D00507 /* KxMovieGLView.m */,
-				D10B32AC29F0053600D00507 /* KXMovieMainViewController.h */,
-				D10B32B029F0053600D00507 /* KXMovieMainViewController.m */,
+				D1AE07C729F146B000D2F542 /* output.mp4 */,
 				D10B32AD29F0053600D00507 /* KxMovieViewController.h */,
 				D10B32A729F0053600D00507 /* KxMovieViewController.m */,
 				D10B32B829F0056200D00507 /* MyHeartWillGoOn.mp4 */,
@@ -833,6 +834,7 @@
 			files = (
 				D10B2F7429EFB39000D00507 /* LaunchScreen.storyboard in Resources */,
 				D10B32B929F0056300D00507 /* MyHeartWillGoOn.mp4 in Resources */,
+				D1AE07C829F146B000D2F542 /* output.mp4 in Resources */,
 				D10B2F7129EFB39000D00507 /* Assets.xcassets in Resources */,
 				D10B2F6F29EFB38D00D00507 /* Main.storyboard in Resources */,
 				D10B328C29EFB91200D00507 /* SDL_config.h.cmake in Resources */,
@@ -850,6 +852,7 @@
 			files = (
 				D10B32B429F0053600D00507 /* KxMovieGLView.m in Sources */,
 				D10B2F6C29EFB38D00D00507 /* ViewController.m in Sources */,
+				D1AE07CB29F14B6C00D2F542 /* HHPlayerManager.m in Sources */,
 				D10B32A229EFD51800D00507 /* HHVideoModel.m in Sources */,
 				D10B32B529F0053600D00507 /* KxAudioManager.m in Sources */,
 				D10B32B229F0053600D00507 /* KxMovieViewController.m in Sources */,
@@ -857,7 +860,6 @@
 				D10B2F6629EFB38D00D00507 /* AppDelegate.m in Sources */,
 				D10B329129EFB9CA00D00507 /* HHVideoDecoder.m in Sources */,
 				D10B2F8329EFB46400D00507 /* HHVideoViewController.m in Sources */,
-				D10B32B729F0053600D00507 /* KXMovieMainViewController.m in Sources */,
 				D10B2F7729EFB39000D00507 /* main.m in Sources */,
 				D10B2F8629EFB4A500D00507 /* HHAudioManager.m in Sources */,
 				D10B32A529EFF4F500D00507 /* HHVideoGLView.m in Sources */,

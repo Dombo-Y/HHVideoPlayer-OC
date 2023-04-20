@@ -35,6 +35,9 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly, nonatomic) NSUInteger frameWidth;
 @property (readonly, nonatomic) NSUInteger frameHeight;
 
+@property (readwrite,nonatomic) CGFloat position;
+@property (readonly, nonatomic) CGFloat duration;
+
 + (id)videoDecoderWithContentPath:(NSString *)path;
 
 - (BOOL)openFile:(NSString *)path;

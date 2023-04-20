@@ -620,4 +620,7 @@
 //    [_context presentRenderbuffer:GL_RENDERBUFFER];
 //}
 
+- (void)render:(HHVideoFrame *) frame {
+    
+}
 @end

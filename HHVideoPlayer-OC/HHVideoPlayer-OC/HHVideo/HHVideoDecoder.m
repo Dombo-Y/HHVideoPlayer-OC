@@ -227,9 +227,7 @@
     if (avcodec_open2(codecCtx, codec, NULL) < 0) {
         return -1;
     }
-    if (!audioCodecIsSupported(codecCtx)) {
-        
-    }
+    if (!audioCodecIsSupported(codecCtx)) { }
     _audioFrame = av_frame_alloc();
     
     if (!_audioFrame) {
@@ -502,6 +500,18 @@
     }
     
     return nil;
+}
+
+
+#pragma mark - interface Method Video Info
+- (CGFloat)duration {
+    if (!_formatCtx) {
+        return 0;
+    }
+    if (_formatCtx->duration == AV_NOPTS_VALUE) {
+        return MAXFLOAT;
+    }
+    return (CGFloat)_formatCtx->duration / AV_TIME_BASE;
 }
 
 
