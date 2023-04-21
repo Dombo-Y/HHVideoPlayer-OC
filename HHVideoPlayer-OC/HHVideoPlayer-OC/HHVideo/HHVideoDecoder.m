@@ -15,6 +15,8 @@
 
 #import "HHVideoModel.h"
 #import "HHAudioManager.h"
+ 
+static BOOL DEBUG_NSLOG_TAG = YES;
 
 @interface HHVideoDecoder() {
     AVFormatContext *_formatCtx;
@@ -50,7 +52,12 @@
 }
 
 - (BOOL)setupVideoFrameFormat:(HHVideoFrameFormat)format {
-    return YES;
+    if (format == HHVideoFrameFormatYUV && _videoCodecCtx && (_videoCodecCtx->pix_fmt == AV_PIX_FMT_YUV420P || _videoCodecCtx->pix_fmt == AV_PIX_FMT_YUVJ420P)) {
+        _videoFrameFormat = HHVideoFrameFormatYUV;
+        return YES;
+    }
+    _videoFrameFormat = HHVideoFrameFormatRGB;
+    return _videoFrameFormat == format;
 }
 
 - (BOOL) setupScaler {
@@ -66,6 +73,9 @@
 
 #pragma mark - 外部方法
 + (id)videoDecoderWithContentPath:(NSString *)path {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     HHVideoDecoder *mp = [[HHVideoDecoder alloc] init];
     if (mp) {
         [mp openFile:path];
@@ -77,6 +87,9 @@
     if (path.length ==0) {
         NSLog(@"nil  path");
         return NO;
+    }
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
     }
     _isNetwork = isNetworkPath(path);
     
@@ -127,6 +140,9 @@
 
 #pragma mark - path  解析
 - (int)openInput: (NSString *) path {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     AVFormatContext *formatCtx = NULL;
     if (_interruptCallback) {
         formatCtx = avformat_alloc_context();
@@ -159,6 +175,9 @@
 
 #pragma mark - oepn Audio & Video Stream
 - (int)openVideoStream {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     int error = 0;
     _videoStream = -1;
     _videoStreams = collectStreams(_formatCtx, AVMEDIA_TYPE_VIDEO);
@@ -167,6 +186,7 @@
         if (0 == (_formatCtx->streams[iStream]->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
             error = [self openVideoStream:iStream];
             if (error < 0) {
+                NSLog(@"openVideoStream error %d", error);
                 break;
             }
         }
@@ -175,9 +195,16 @@
 }
 
 - (int)openVideoStream:(NSInteger)videoStream {
-    AVCodecParameters *codecPara = _formatCtx->streams[videoStream]->codecpar;
-    AVCodec *codec = avcodec_find_decoder(codecPara->codec_id);
-    AVCodecContext *codecCtx = avcodec_alloc_context3(codec);
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
+//    AVCodecParameters *codecPara = _formatCtx->streams[videoStream]->codecpar;
+//    AVCodec *codec = avcodec_find_decoder(codecPara->codec_id);
+//    AVCodecContext *codecCtx = avcodec_alloc_context3(codec);
+    
+    AVCodecContext *codecCtx = _formatCtx->streams[videoStream]->codec;
+    AVCodec *codec = avcodec_find_decoder(codecCtx->codec_id);
+    
     if (!codec) {
         NSLog(@" decoder  not found ");
         return -1;
@@ -202,12 +229,16 @@
 }
 
 - (int)openAudioStream {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     int errCode = -1;
     _audioStream = -1;
     _audioStreams = collectStreams(_formatCtx, AVMEDIA_TYPE_AUDIO);
     for (NSNumber *n in _audioStreams) {
         errCode = [self openAudioStream:n.integerValue];
         if (errCode < 0) {
+            NSLog(@"openAudioStream error %d", errCode);
             break;
         }
     }
@@ -215,11 +246,16 @@
 }
 
 - (int)openAudioStream:(NSInteger) audioStream {
-    AVCodecParameters *codecPara = _formatCtx->streams[audioStream]->codecpar;
-    AVCodec *codec = avcodec_find_decoder(codecPara->codec_id);
-    AVCodecContext *codecCtx = avcodec_alloc_context3(codec);
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
+//    AVCodecParameters *codecPara = _formatCtx->streams[audioStream]->codecpar;
+//    AVCodec *codec = avcodec_find_decoder(codecPara->codec_id);
+//    AVCodecContext *codecCtx = avcodec_alloc_context3(codec);
     
+    AVCodecContext *codecCtx = _formatCtx->streams[audioStream]->codec;
     SwrContext *swrContext = NULL;
+    AVCodec *codec = avcodec_find_decoder(codecCtx->codec_id);
     
     if (!codec) {
         return -1;
@@ -227,49 +263,46 @@
     if (avcodec_open2(codecCtx, codec, NULL) < 0) {
         return -1;
     }
-    if (!audioCodecIsSupported(codecCtx)) { }
+    
+
+    if (!audioCodecIsSupported(codecCtx)) {
+        id<HHAudioManager> audioManager = [HHAudioManager audioManager];
+        swrContext = swr_alloc_set_opts(NULL, av_get_default_channel_layout(audioManager.numOutputChannels), AV_SAMPLE_FMT_S16, audioManager.samplingRate,av_get_default_channel_layout(codecCtx->channels),codecCtx->sample_fmt,codecCtx->sample_rate,
+                                            0, NULL);
+        if (!swrContext || swr_init(swrContext)) {
+            if (swrContext) {
+                swr_free(&swrContext);
+            }
+            avcodec_close(codecCtx);
+            return -1;
+        }
+    }
+    
     _audioFrame = av_frame_alloc();
     
     if (!_audioFrame) {
-        if (_swrContext) {
-            
-            id<HHAudioManager> audioManager = [HHAudioManager audioManager];
-            swrContext = swr_alloc_set_opts(NULL, av_get_default_channel_layout(audioManager.numOutputChannels), AV_SAMPLE_FMT_S16, audioManager.samplingRate,av_get_default_channel_layout(codecCtx->channels),codecCtx->sample_fmt,codecCtx->sample_rate,
-                                            0, NULL);
-            swr_init(swrContext);
-            
-            if (!swrContext) {
-                if (swrContext) {
-                    swr_free(&swrContext);
-                    avcodec_close(codecCtx);
-                    NSLog(@" 音频重采样失败 ");
-                    return -1;
-                }
-            }
-            
-            _audioFrame = av_frame_alloc();
-            if (!_audioFrame) {
-                if (swrContext) {
-                    swr_free(&swrContext);
-                }
-                avcodec_close(codecCtx);
-                NSLog(@"初始化 audioFrame 失败，内存不够了");
-                return -1;
-            }
-            
-            _audioStream = audioStream;
-            _audioCodecCtx = codecCtx;
-            _swrContext = swrContext;
-            
-            AVStream *st = _formatCtx->streams[_audioStream];
-            avStreamFPSTimeBase(st, 0.025, 0, &_audioTimeBase);
+        if (swrContext) {
+            swr_free(&swrContext);
         }
+        avcodec_close(codecCtx);
+        return -1;
     }
+    
+    _audioStream = audioStream;
+    _audioCodecCtx = codecCtx;
+    _swrContext = swrContext;
+    
+    AVStream *st = _formatCtx->streams[_audioStream];
+    avStreamFPSTimeBase(st, 0.025, 0, &_audioTimeBase);
+
     return 1;
 }
 
 #pragma mark - close VideoStream & AudioStream & closeScale
 - (void) closeVideoStream {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     _videoStream = -1;
     [self closeScaler];
     if (_videoFrame) {
@@ -284,6 +317,9 @@
 }
 
 - (void) closeAudioStream{
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     _audioStream = -1;
     if (_swrBuffer) {
         free(_swrBuffer);
@@ -305,6 +341,9 @@
 }
 
 - (void) closeScaler {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     if (_swsContext) {
         sws_freeContext(_swsContext);
         _swsContext = NULL;
@@ -316,6 +355,9 @@
 }
 
 - (void)closeFile {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     [self closeAudioStream];
     [self closeVideoStream];
     
@@ -332,6 +374,9 @@
 
 #pragma mark - decodeFrames
 - (NSArray *)decodeFrames:(CGFloat)minDuration {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     if (_videoStream == -1 &&
         _audioStream == -1) {
         return nil;
@@ -372,7 +417,8 @@
                     pktSize -= len;
                 }
             }
-        }  else if (packet.stream_index == _audioStream) {
+        }
+        else if (packet.stream_index == _audioStream) {
             int pktSize = packet.size;
             while (pktSize > 0) {
                 int gotframe = 0;
@@ -404,7 +450,10 @@
     return result;
 }
 
-- (HHVideoFrame *) handleVideoFrame { 
+- (HHVideoFrame *) handleVideoFrame {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     if (!_videoFrame->data[0]) {
         return nil;
     }
@@ -415,7 +464,8 @@
         yuvFrame.chromaB = copyFrameData(_videoFrame->data[1], _videoFrame->linesize[1], _videoCodecCtx->width/2, _videoCodecCtx->height/2);
         yuvFrame.chromaR = copyFrameData(_videoFrame->data[2], _videoFrame->linesize[2], _videoCodecCtx->width/2, _videoCodecCtx->height/2);
         frame = yuvFrame;
-    }else {
+    }
+    else {
         if (!_swsContext && ![self setupScaler]) {
             return nil;
         }
@@ -443,6 +493,9 @@
 }
 
 - (HHAudioFrame *) handleAudioFrame {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     if (!_audioFrame->data[0]) {
         return nil;
     }
@@ -503,6 +556,9 @@
 
 #pragma mark - interface Method Video Info
 - (CGFloat)duration {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     if (!_formatCtx) {
         return 0;
     }

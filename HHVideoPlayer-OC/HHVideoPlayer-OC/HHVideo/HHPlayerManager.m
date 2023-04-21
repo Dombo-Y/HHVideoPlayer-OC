@@ -5,12 +5,24 @@
 //  Created by 尹东博 on 2023/4/20.
 //
 
+/* 播放器设计思路：
+ 1.传进来一个URL Path(本地地址 or  网络地址)
+ 2. 在OpenFile 流程中 对 Decoder 中进行一些处理【 对 URL Path 进行判断，如何合法 就用 avformat_open_input 进行 formatCtx，这里可以获取到视频文件的参数信息】
+ 3. 在SetVideoDecoder 流程中 创建AudioArray & VideoArray & DispatchQueue，将GLView 题add到 TargetView 上，然后Play
+ 4. 从Decoder 中获取 Frame，将每个取出来的Frame的时间进行累加，达到一定时间后finish，然后返回array，这里包含视频帧与音频帧是混合的
+ 5. 返回出来以后对 混合音视频帧的Array 进行解析，区分为Video 和Audio，分别加入VideoArray 和 AudioArray
+ 6. 进行tick 循环
+ 7.打开Audio 播放器
+ 
+ */
+
 #import "HHPlayerManager.h"
 #import "HHVideoDecoder.h"
 #import "HHVideoGLView.h"
 #import "HHAudioManager.h"
 #import "HHVideoModel.h"
 
+static BOOL DEBUG_NSLOG_TAG = YES;
 
 @interface HHPlayerManager() {
     HHVideoDecoder  *_decoder;
@@ -20,22 +32,20 @@
     
     HHVideoGLView *_glView;
     UIView *_targetView;
+      
+    NSData  *_currentAudioFrame; // 存储当前音视频帧的NSData 对象
+    NSUInteger  _currentAudioFramePos; // 表示当前音频帧的位置，即已经播放了多少个字节
+    CGFloat _videoPosition; // 视频的位置
+    CGFloat _bufferedDuration; // 表示当前已经缓冲的视频时长，单位为秒。
+    CGFloat _minBufferedDuration; // 表示最小的视频缓冲时长，单位为秒，如果当前已经缓冲的时长小于最小缓冲时长，就会开始缓冲视频。
+    CGFloat _maxBufferedDuration; // 表示最大的视频缓冲时长，单位为秒。如果当前已经缓冲的时长超过最大缓冲时长，就会停止缓冲视频。
      
-    
-    NSData  *_currentAudioFrame;
-    NSUInteger  _currentAudioFramePos;
-    
-    CGFloat _bufferedDuration;
-    CGFloat _minBufferedDuration;
-    CGFloat _maxBufferedDuration;
-    
-    
     NSTimeInterval  _tickCorrectionTime; //音视频同步时钟的初始事件
     NSTimeInterval  _tickCorrectionPosition;// 音视频同步时钟的初始位置
-    
-    
-    CGFloat _videoPosition; // 视频的位置
+    NSUInteger _tickCounter; //  一个计数器，用于统计每秒的帧数，以便计算播放速度偏差。
+      
 }
+
 @property (nonatomic, assign) BOOL playing; //是否在播放中
 @property (nonatomic, assign) BOOL interrupted; // 是否需要中断
 @property (nonatomic, assign) BOOL decoding;
@@ -52,43 +62,71 @@
     });
     return sharedInstance;
 }
+
+- (void)setupAudioConfig {
+    id<HHAudioManager> audioManager = [HHAudioManager audioManager];
+    [audioManager activateAudioSession];
+}
  
 - (void)playerManagerWithContentPath:(NSString *)path targetView:(id)view {
     NSAssert(path.length > 0, @"empty path");
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
+    [self setupAudioConfig];
     if ([view isKindOfClass:[UIView class]]) {
         _targetView = (UIView *)view;
     }
     
-    BOOL success = NO;
     HHVideoDecoder *decoder = [[HHVideoDecoder alloc] init];
-    success = [decoder openFile:path];
-    [self setVideoDecoder:decoder openSuccess:success];
+    
+    __weak HHPlayerManager *weakSelf = self;
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        BOOL success = NO;
+        success = [decoder openFile:path];
+        __strong HHPlayerManager *strongSelf = weakSelf;
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            [strongSelf setVideoDecoder:decoder openSuccess:success];
+        });
+    });
+    
 }
 
-- (void)setVideoDecoder:(HHVideoDecoder *)decoder openSuccess:(BOOL)success{
+- (void)setVideoDecoder:(HHVideoDecoder *)decoder openSuccess:(BOOL)success{ // 3
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     if (decoder && success) {
         _decoder = decoder;
         _dispatchQueue = dispatch_queue_create("HHView_MAIN_QUEUE", DISPATCH_QUEUE_SERIAL);
         _videoFrames = [NSMutableArray array];
         _audioFrames = [NSMutableArray array];
-        
     }
+    [self setupPresentView];
+    
+    // play
+    [self play];
 }
 
 - (void)setupPresentView {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     if (_decoder.validVideo) {
         _glView = [[HHVideoGLView alloc] initWithFrame:_targetView.bounds decoder:_decoder];
     }
      
     if (!_glView) {
+        NSLog(@" 没有 HHVideoGLView  ");
         return;
     }
-    
+     
+    [_targetView addSubview:_glView];
     _glView.contentMode = UIViewContentModeScaleAspectFit;
     _glView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleBottomMargin;
-    
-    [_targetView addSubview:_glView];
-    
+     
+    _targetView.backgroundColor = [UIColor clearColor];
+   
     if (_decoder.duration == MAXFLOAT) {
         // 当视频播放完了
         // 更新 时间显示
@@ -100,6 +138,9 @@
 
 #pragma mark - control Method
 - (void)play {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     if (self.playing) { // 1.状态判断
         return;
     }
@@ -113,6 +154,7 @@
     _interrupted = NO;
     
     [self asyncDecoderFrames];// 4.开始解码视频帧
+    // 更新界面
     
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, 0.1 * NSEC_PER_SEC);
     dispatch_after(popTime, dispatch_get_main_queue(), ^{
@@ -124,15 +166,20 @@
 }
 
 - (void)pause {
-    
+    if (!self.playing) {
+        return;
+    }
+    self.playing = NO;
+    [self enableAudio:NO];
+//    []; 更新UI
 }
+ 
 
-- (void)stop {
-    
-}
-
-#pragma mark - open Audio
+#pragma mark - open Audio  outputBlock 循环
 - (void)enableAudio:(BOOL)on {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     id<HHAudioManager>audioManager = [HHAudioManager audioManager];
     if (on && _decoder.validAudio) {
         audioManager.outputBlock = ^(float * _Nonnull data, UInt32 numFrames, UInt32 numChannels) {
@@ -146,6 +193,9 @@
 }
 
 - (void)audioCallbackFillData:(float *)outData numFrames:(UInt32)numFrames numChannels:(UInt32)numChannels {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     if (_buffered) { //当前是否有可用音频
         memset(outData, 0, numFrames * numChannels * sizeof(float));// 音频缓冲区size = 缓冲区帧数 * 音频通道数
         return;
@@ -190,7 +240,6 @@
                 memcpy(outData, bytes, bytesToCopy);
                 numFrames -= framesToCopy;
                 outData += framesToCopy * numChannels;
-                
                 if (bytesToCopy < bytesLeft)
                     _currentAudioFramePos += bytesToCopy;
                 else
@@ -205,8 +254,11 @@
     }
 }
 
-#pragma mark - 解析～～
+#pragma mark - 解析～～ 循环
 - (void)asyncDecoderFrames {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     if (self.decoding) {
         return;
     }
@@ -217,6 +269,12 @@
     
     self.decoding = YES;
     dispatch_async(_dispatchQueue, ^{
+        {
+            __strong HHPlayerManager *strongSelf = weakManager;
+            if (!strongSelf.playing)
+                return;
+        }
+        
         BOOL good = YES;
         while (good) {
             good = NO;
@@ -233,16 +291,26 @@
                 }
             }
         }
+        {
+            __strong HHPlayerManager *strongSelf = weakManager;
+            if (strongSelf) {
+                strongSelf.decoding = NO;
+            }
+        }
     });
 }
 
 - (BOOL)addFrames:(NSArray *)frames{
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     if (_decoder.validVideo) {
         @synchronized (_videoFrames) {
             for (HHBaseFrame *frame in frames) {
                 if (frame.type == HhMovieFrameTypeVideo) {
                     [_videoFrames addObject:frame];
                     _bufferedDuration += frame.duration;
+                    NSLog(@"_bufferedDuration == %f", _bufferedDuration);
                 }
             }
         }
@@ -253,16 +321,18 @@
             for (HHBaseFrame *frame in frames) {
                 if (frame.type == HhMovieFrameTypeAudio) {
                     [_audioFrames addObject:frame];
-//                    _bufferedDuration += frame.duration;// 音频为什么要加
+                    _bufferedDuration += frame.duration;// 音频为什么要加
                 }
             }
         }
     }
     return self.playing && _bufferedDuration < _maxBufferedDuration; // _maxBufferedDuration 这个不理解
 }
-
-
+ 
 - (BOOL)decodeFrames {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     NSArray *frames = nil;
     if (_decoder.validVideo || _decoder.validAudio) {
         frames = [_decoder decodeFrames:0];
@@ -272,9 +342,13 @@
     }
     return NO;
 }
-#pragma mark - 
 
+#pragma mark -  loop Method 自调用循环
+// 核心哦～～～
 - (void)tick {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     //1. 是否需要更新缓冲状态
     if (_buffered && ((_bufferedDuration > _minBufferedDuration) || _decoder.isEOF)) {
         _tickCorrectionTime = 0;
@@ -287,12 +361,13 @@
         interval = [self presentFrame];
     }
      
-    if (self.playing) {
-        //3. 检查待解码数，
+    if (self.playing) { //3. 检查待解码数，
         const NSUInteger leftFrames = (_decoder.validVideo ? _videoFrames.count:0) + (_decoder.validAudio ? _audioFrames.count : 0);
         if (0 == leftFrames) {
             if (_decoder.isEOF) {
                 [self pause];
+                [self updateHUD];
+                return;
             }
             
             if (_minBufferedDuration > 0 && !_buffered) {
@@ -307,14 +382,23 @@
         const NSTimeInterval time = MAX(interval + correction, 0.01);
         dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, time * NSEC_PER_SEC);
         dispatch_after(popTime, dispatch_get_main_queue(), ^{
-            [self tick]; // 循环 自己调用自己？
+            [self tick];
         });
     }
 }
 
+- (void) updateHUD {
+    const CGFloat duration = _decoder.duration;
+    const CGFloat position = _videoPosition - _decoder.startTime;
+    
+    CGFloat sliderValue = position / duration;
+}
 
 #pragma mark - 从 _videoFrames 中获取 VideoFrame
 - (CGFloat)presentFrame {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     CGFloat interval = 0;
     if (_decoder.validVideo) {
         HHVideoFrame *frame;
@@ -331,12 +415,13 @@
     } else if (_decoder.validAudio) {
         // 这里干啥的，不懂
     }
-    
     return interval;
 }
-
-
+ 
 - (CGFloat)presentVideoFrame:(HHVideoFrame *) frame {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     if (_glView) {
         [_glView render:frame];
     }
@@ -345,6 +430,9 @@
 }
 
 - (CGFloat)tickCorrection {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     if (_buffered) {
         return 0;
     }
@@ -359,7 +447,7 @@
     NSTimeInterval dPosition = _videoPosition - _tickCorrectionPosition;
     NSTimeInterval dTime = now - _tickCorrectionTime;
     NSTimeInterval correction = dPosition - dTime;
-    
+    NSLog(@"dPosition = %f, dTime = %f, correction =%f", dPosition, dTime, correction );
     if (correction > 1.f || correction < -1.f) {
         correction = 0;
         _tickCorrectionTime = 0;
@@ -367,33 +455,67 @@
     return correction;
 }
 
-- (void)updatePosition:(CGFloat)position playMode:(BOOL)playMode {
-    [self freeBufferedFrames];
-    position = MIN(_decoder.duration-1, MAX(0, position));
-    
-    __weak HHPlayerManager *weakSelf = self;
-    dispatch_async(_dispatchQueue, ^{
-        if (playMode) {
-            __strong HHPlayerManager*strongSelf= weakSelf;
-            if (!strongSelf) {
-                return;
-            }
-            [strongSelf setDecoderPosition:position];
-        }
-    });
-}
+//- (void)updatePosition:(CGFloat)position playMode:(BOOL)playMode {
+//    if (DEBUG_NSLOG_TAG) {
+//        NSLog(@"Method: %s", __FUNCTION__);
+//    }
+//    [self freeBufferedFrames];
+//    position = MIN(_decoder.duration-1, MAX(0, position));
+//
+//    __weak HHPlayerManager *weakSelf = self;
+//    dispatch_async(_dispatchQueue, ^{
+//        if (playMode) {
+//            __strong HHPlayerManager*strongSelf= weakSelf;
+//            if (!strongSelf) {
+//                return;
+//            }
+//            [strongSelf setDecoderPosition:position];
+//
+//
+//            dispatch_async(dispatch_get_main_queue(), ^{
+//                __strong HHPlayerManager *strongSelf = weakSelf;
+//                if (strongSelf) {
+//                    [strongSelf setVideoPositionFromDecoder];
+//                    [strongSelf play];
+//                }
+//            });
+//        } else {
+//            {
+//                __strong HHPlayerManager *strongSelf = weakSelf;
+//                if (!strongSelf) return;
+//                [strongSelf setDecoderPosition: position];
+//                [strongSelf decodeFrames];
+//            }
+//
+//            dispatch_async(dispatch_get_main_queue(), ^{
+//                __strong HHPlayerManager *strongSelf = weakSelf;
+//                if (strongSelf) {
+////                    [strongSelf enableUpdateHUD];
+//                    [strongSelf setVideoPositionFromDecoder];
+//                    [strongSelf presentFrame];
+//                    [strongSelf updateHUD];
+//                }
+//            });
+//        }
+//    });
+//}
 
 #pragma mark - set
-- (void)setDecoderPosition:(CGFloat) position {
-    _decoder.position = position;
-}
+//- (void)setDecoderPosition:(CGFloat) position {
+//    _decoder.position = position;
+//}
+//
+//- (void)setVideoPositionFromDecoder {
+//    _videoPosition = _decoder.position;
+//}
 
-- (void)setVideoPositionFromDecoder {
-    _videoPosition = _decoder.position;
-}
+
 
 #pragma mark - freeBufferedFrames
 - (void)freeBufferedFrames {
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
     @synchronized (_videoFrames) {
         [_videoFrames removeAllObjects];
     }

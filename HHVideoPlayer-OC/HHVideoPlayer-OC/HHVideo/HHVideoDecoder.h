@@ -38,6 +38,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readwrite,nonatomic) CGFloat position;
 @property (readonly, nonatomic) CGFloat duration;
 
+@property (readonly, nonatomic) CGFloat startTime;
+
 + (id)videoDecoderWithContentPath:(NSString *)path;
 
 - (BOOL)openFile:(NSString *)path;
