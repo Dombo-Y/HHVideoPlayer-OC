@@ -248,7 +248,7 @@
             }
             
             _audioFrame = av_frame_alloc();
-            if (!_audioFrame) { //
+            if (!_audioFrame) {
                 if (swrContext) {
                     swr_free(&swrContext);
                 }
@@ -404,8 +404,7 @@
     return result;
 }
 
-- (HHVideoFrame *) handleVideoFrame {
-    
+- (HHVideoFrame *) handleVideoFrame { 
     if (!_videoFrame->data[0]) {
         return nil;
     }
@@ -467,7 +466,6 @@
         numFrames = swr_convert(_swrContext, outbuf,  _audioFrame->nb_samples * ratio, (const uint8_t **)_audioFrame->data, _audioFrame->nb_samples);
         
         if (numFrames < 0) {
-//            LoggerAudio(0, @"fail resample audio");
             return nil;
         }
          
@@ -585,8 +583,7 @@ static int interrupt_callback(void *ctx) {
     if (_interruptCallback)
         return _interruptCallback();
     return NO;
-}
-
+} 
 #pragma mark -----
 
 static BOOL isNetworkPath (NSString *path) {
