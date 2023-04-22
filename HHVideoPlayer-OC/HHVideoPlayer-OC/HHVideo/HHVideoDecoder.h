@@ -28,6 +28,11 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) BOOL isEOF;
 @property (nonatomic, readonly) BOOL  isNetwork; 
 @property (nonatomic, readonly) CGFloat fps;
+@property (nonatomic, assign) CGFloat sampleRate;
+ 
+@property (readonly, nonatomic) NSUInteger audioStreamsCount;
+@property (readwrite,nonatomic) NSInteger selectedAudioStream;
+
 @property (nonatomic, strong) HhVideoDecoderInterruptCallback interruptCallback;
 @property (readonly, nonatomic) BOOL validVideo;
 @property (readonly, nonatomic) BOOL validAudio;
@@ -40,12 +45,15 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (readonly, nonatomic) CGFloat startTime;
 
+@property (readonly, nonatomic, strong) NSString *videoStreamFormatName;
 + (id)videoDecoderWithContentPath:(NSString *)path;
 
 - (BOOL)openFile:(NSString *)path;
 - (void)closeFile;
 - (BOOL)setupVideoFrameFormat:(HHVideoFrameFormat)format;
 - (NSArray *)decodeFrames:(CGFloat)minDUration;
+
+- (void)rePlayer;
 @end
 
 NS_ASSUME_NONNULL_END

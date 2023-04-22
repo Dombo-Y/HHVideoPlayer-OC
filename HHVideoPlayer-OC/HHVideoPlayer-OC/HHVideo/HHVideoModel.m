@@ -16,8 +16,15 @@
 
 
 @implementation HHAudioFrame
+- (HhBaseFrameType)type {
+    return HhMovieFrameTypeAudio;
+}
 @end
 @implementation HHVideoFrame
+
+- (HhBaseFrameType)type {
+    return HhMovieFrameTypeVideo;
+}
 @end
 
 

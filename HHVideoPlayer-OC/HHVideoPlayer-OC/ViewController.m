@@ -7,7 +7,7 @@
 
 #import "ViewController.h"
 #import "KxMovieViewController.h"
-
+#import "HHVideoViewController.h"
 @interface ViewController ()
 
 @end
@@ -20,10 +20,21 @@
 }
 
 - (IBAction)reponseMethod:(UIButton *)sender {
-    NSString *path = @"/Users/yindongbo/HHVideoPlayer-OC/HHVideoPlayer-OC/HHVideoPlayer-OC/KxMovieExapmle/MyHeartWillGoOn.mp4";
+    NSString *path = @"/Users/yindongbo/HHVideoPlayer-OC/HHVideoPlayer-OC/HHVideoPlayer-OC/KxMovieExapmle/output.mp4";
     NSMutableDictionary *parameters = [NSMutableDictionary dictionary];
-    KxMovieViewController *vc = [KxMovieViewController movieViewControllerWithContentPath:path
-                                                                               parameters:parameters];
+    KxMovieViewController *vc = [KxMovieViewController movieViewControllerWithContentPath:path  parameters:parameters];
+    
+//    HHVideoViewController *vc = [[HHVideoViewController alloc] init];
+    [self presentViewController:vc animated:YES completion:nil];
+}
+
+
+- (IBAction)responseMethodA:(UIButton *)sender {
+//    NSString *path = @"/Users/yindongbo/HHVideoPlayer-OC/HHVideoPlayer-OC/HHVideoPlayer-OC/KxMovieExapmle/output.mp4";
+//    NSMutableDictionary *parameters = [NSMutableDictionary dictionary];
+//    KxMovieViewController *vc = [KxMovieViewController movieViewControllerWithContentPath:path  parameters:parameters];
+    
+    HHVideoViewController *vc = [[HHVideoViewController alloc] init];
     [self presentViewController:vc animated:YES completion:nil];
 }
 

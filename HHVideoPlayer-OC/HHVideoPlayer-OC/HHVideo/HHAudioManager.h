@@ -29,6 +29,7 @@ typedef void (^HhAudioManagerOutputBlock)(float *data, UInt32 numFrames, UInt32 
 - (BOOL) play;
 - (void) pause;
 
+- (void)playMethod;
 @end
 
 @interface HHAudioManager : NSObject

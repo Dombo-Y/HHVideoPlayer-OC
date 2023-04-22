@@ -96,36 +96,27 @@ static OSStatus renderCallback (void *inRefCon, AudioUnitRenderActionFlags    *i
 - (BOOL)setupAudio {
 
     UInt32 sessionCategory = kAudioSessionCategory_MediaPlayback;
-    if (checkError(AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(sessionCategory),  &sessionCategory), "Couldn't set audio category"))
-        return NO;
-
-    if (checkError(AudioSessionAddPropertyListener(kAudioSessionProperty_AudioRouteChange,  sessionPropertyListener, (__bridge void *)(self)),"Couldn't add audio session property listener")) {}
-
-    if (checkError(AudioSessionAddPropertyListener(kAudioSessionProperty_CurrentHardwareOutputVolume, sessionPropertyListener, (__bridge void *)(self)), "Couldn't add audio session property listener"))  { }
-
-    if (checkError(AudioSessionSetActive(YES),"Couldn't activate the audio session"))
-        return NO;
-
+    AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(sessionCategory),  &sessionCategory);
+//    if (checkError(, "Couldn't set audio category"))
+//        return NO;
+    AudioSessionAddPropertyListener(kAudioSessionProperty_AudioRouteChange,  sessionPropertyListener, (__bridge void *)(self));
+    AudioSessionAddPropertyListener(kAudioSessionProperty_CurrentHardwareOutputVolume, sessionPropertyListener, (__bridge void *)(self));
+    AudioSessionSetActive(YES);
     [self checkSessionProperties];
-
     AudioComponentDescription description = {0};
     description.componentType = kAudioUnitType_Output;
     description.componentSubType = kAudioUnitSubType_RemoteIO;
     description.componentManufacturer = kAudioUnitManufacturer_Apple;
  
     AudioComponent component = AudioComponentFindNext(NULL, &description);
-    if (checkError(AudioComponentInstanceNew(component, &_audioUnit),"Couldn't create the output audio unit"))
-        return NO;
+    AudioComponentInstanceNew(component, &_audioUnit);
 
     UInt32 size;
-
     size = sizeof(AudioStreamBasicDescription);
-    if (checkError(AudioUnitGetProperty(_audioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0,  &_outputFormat, &size), "Couldn't get the hardware output stream format"))
-        return NO;
-
-
+    AudioUnitGetProperty(_audioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0,  &_outputFormat, &size);
+    
     _outputFormat.mSampleRate = _samplingRate;
-    if (checkError(AudioUnitSetProperty(_audioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0,  &_outputFormat,  size), "Couldn't set the hardware output stream format")) { }
+    AudioUnitSetProperty(_audioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0,  &_outputFormat,  size);
 
     _numBytesPerSample = _outputFormat.mBitsPerChannel / 8;
     _numOutputChannels = _outputFormat.mChannelsPerFrame;
@@ -134,13 +125,8 @@ static OSStatus renderCallback (void *inRefCon, AudioUnitRenderActionFlags    *i
     AURenderCallbackStruct callbackStruct;
     callbackStruct.inputProc = renderCallback;
     callbackStruct.inputProcRefCon = (__bridge void *)(self);
-
-    if (checkError(AudioUnitSetProperty(_audioUnit, kAudioUnitProperty_SetRenderCallback,  kAudioUnitScope_Input, 0, &callbackStruct, sizeof(callbackStruct)),
-                   "Couldn't set the render callback on the audio unit"))
-        return NO;
-
-    if (checkError(AudioUnitInitialize(_audioUnit),"Couldn't initialize the audio unit"))
-        return NO;
+    AudioUnitSetProperty(_audioUnit, kAudioUnitProperty_SetRenderCallback,  kAudioUnitScope_Input, 0, &callbackStruct, sizeof(callbackStruct));
+    AudioUnitInitialize(_audioUnit);
 
     return YES;
 }
@@ -150,17 +136,15 @@ static OSStatus renderCallback (void *inRefCon, AudioUnitRenderActionFlags    *i
 
     UInt32 newNumChannels;
     UInt32 size = sizeof(newNumChannels);
-    if (checkError(AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareOutputNumberChannels,&size, &newNumChannels),"Checking number of output channels"))
-        return NO;
+    
+    AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareOutputNumberChannels,&size, &newNumChannels);
 
     size = sizeof(_samplingRate);
-    if (checkError(AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareSampleRate, &size, &_samplingRate),"Checking hardware sampling rate"))
-        return NO;
+    AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareSampleRate, &size, &_samplingRate);
 
     size = sizeof(_outputVolume);
-    if (checkError(AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareOutputVolume,&size, &_outputVolume),"Checking current hardware output volume"))
-        return NO;
-
+    AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareOutputVolume,&size, &_outputVolume);
+    
     return YES;
 }
 
@@ -216,11 +200,11 @@ static OSStatus renderCallback (void *inRefCon, AudioUnitRenderActionFlags    *i
     
     if (_activated) {
         [self pause];
-        checkError(AudioUnitUninitialize(_audioUnit), "Couldn't uninitialize the audio unit");
-        checkError(AudioComponentInstanceDispose(_audioUnit), "Couldn't dispose the output audio unit");
-        checkError(AudioSessionSetActive(NO), "Couldn't deactivate the audio session");
-        checkError(AudioSessionRemovePropertyListenerWithUserData(kAudioSessionProperty_AudioRouteChange, sessionPropertyListener, (__bridge void *)(self)), "Couldn't remove audio session property listener");
-        checkError(AudioSessionRemovePropertyListenerWithUserData(kAudioSessionProperty_CurrentHardwareOutputVolume, sessionPropertyListener, (__bridge void *)(self)), "Couldn't remove audio session property listener");
+        AudioUnitUninitialize(_audioUnit);
+        AudioComponentInstanceDispose(_audioUnit);
+        AudioSessionSetActive(NO);
+        AudioSessionRemovePropertyListenerWithUserData(kAudioSessionProperty_AudioRouteChange, sessionPropertyListener, (__bridge void *)(self));
+        AudioSessionRemovePropertyListenerWithUserData(kAudioSessionProperty_CurrentHardwareOutputVolume, sessionPropertyListener, (__bridge void *)(self));
         _activated = NO;
     }
 }

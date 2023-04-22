@@ -9,9 +9,9 @@
 #import <UIKit/UIKit.h>
 
 typedef enum {
-    
-    HhMovieFrameTypeAudio,
-    HhMovieFrameTypeVideo,
+    HhMovieFrameTypeNone = 0,
+    HhMovieFrameTypeAudio = 1,
+    HhMovieFrameTypeVideo = 2,
 } HhBaseFrameType;
 
 typedef enum {

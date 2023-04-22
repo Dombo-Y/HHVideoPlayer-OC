@@ -14,6 +14,9 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)sharedInstance;
 
 - (void)playerManagerWithContentPath:(NSString *)path targetView:(id)view;
+
+- (void)play;
+- (void)pause;
 @end
 
 NS_ASSUME_NONNULL_END
