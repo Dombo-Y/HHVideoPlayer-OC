@@ -576,7 +576,7 @@ static BOOL DEBUG_NSLOG_TAG = NO;
                         [result addObject:frame];
                         _postion = frame.position;
                         decodedDuration += frame.duration;
-                        NSLog(@"result.cout:%lu, decodedDuration = %f", (unsigned long)result.count, decodedDuration);
+//                        NSLog(@"result.cout:%lu, decodedDuration = %f", (unsigned long)result.count, decodedDuration);
                         if (decodedDuration > minDuration) {
                             finished = YES;
                         }
@@ -616,7 +616,7 @@ static BOOL DEBUG_NSLOG_TAG = NO;
                 pktSize -= len;
             }
         }
-        NSLog(@"video_count = %d , audio_count = %d , stream_index:%d", video_count, audio_count , packet.stream_index);
+//        NSLog(@"video_count = %d , audio_count = %d , stream_index:%d", video_count, audio_count , packet.stream_index);
         av_free_packet(&packet);
     }
     return result;

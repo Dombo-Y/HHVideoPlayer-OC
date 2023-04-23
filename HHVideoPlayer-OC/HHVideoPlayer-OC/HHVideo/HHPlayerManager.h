@@ -17,6 +17,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)play;
 - (void)pause;
+
+- (void)destroy;
 @end
 
 NS_ASSUME_NONNULL_END

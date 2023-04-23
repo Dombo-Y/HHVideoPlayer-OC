@@ -24,7 +24,7 @@
 
 #import "KxAudioManager.h"
 
-static BOOL DEBUG_NSLOG_TAG = YES;
+static BOOL DEBUG_NSLOG_TAG = NO;
 
 
 #define LOCAL_MIN_BUFFERED_DURATION   0.2
@@ -44,6 +44,7 @@ static BOOL DEBUG_NSLOG_TAG = YES;
     NSData  *_currentAudioFrame; // 存储当前音视频帧的NSData 对象
     NSUInteger  _currentAudioFramePos; // 表示当前音频帧的位置，即已经播放了多少个字节
     CGFloat _videoPosition; // 视频的位置
+    CGFloat _audioPostion;// 音频位置
     CGFloat _bufferedDuration; // 表示当前已经缓冲的视频时长，单位为秒。
     CGFloat _minBufferedDuration; // 表示最小的视频缓冲时长，单位为秒，如果当前已经缓冲的时长小于最小缓冲时长，就会开始缓冲视频。
     CGFloat _maxBufferedDuration; // 表示最大的视频缓冲时长，单位为秒。如果当前已经缓冲的时长超过最大缓冲时长，就会停止缓冲视频。
@@ -57,7 +58,7 @@ static BOOL DEBUG_NSLOG_TAG = YES;
 @property (nonatomic, assign) BOOL playing; //是否在播放中
 @property (nonatomic, assign) BOOL interrupted; // 是否需要中断
 @property (nonatomic, assign) BOOL decoding;
-//@property (nonatomic, assign) BOOL buffered;
+@property (nonatomic, assign) BOOL buffered;
 @end
 
 @implementation HHPlayerManager
@@ -73,7 +74,7 @@ static BOOL DEBUG_NSLOG_TAG = YES;
 
 - (void)setupAudioConfig {
     id<HHAudioManager> audioManager = [HHAudioManager audioManager];
-    [audioManager activateAudioSession];
+    [audioManager activateAudioSession]; 
 }
  
 #pragma mark -
@@ -100,16 +101,14 @@ static BOOL DEBUG_NSLOG_TAG = YES;
         });
     });
 }
-
-- (void)dealloc {
+ 
+- (void)destroy {
     [self pause];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     if (_dispatchQueue) {
         _dispatchQueue = NULL;
     }
 }
-
-- (void)didReceiveMemoryWarning {}
 
 - (void)setVideoDecoder:(HHVideoDecoder *)decoder openSuccess:(BOOL)success{ // 3
     if (DEBUG_NSLOG_TAG) {
@@ -186,6 +185,7 @@ static BOOL DEBUG_NSLOG_TAG = YES;
     _interrupted = NO;
     _tickCorrectionTime = 0;
     _tickCounter = 0;
+    _buffered = YES;
       
     [self asyncDecoderFrames];// 4.开始解码视频帧
      
@@ -209,6 +209,7 @@ static BOOL DEBUG_NSLOG_TAG = YES;
     if (DEBUG_NSLOG_TAG) {
         NSLog(@"Method: %s", __FUNCTION__);
     }
+    
     id<HHAudioManager>audioManager = [HHAudioManager audioManager];
     if (on && _decoder.validAudio) {
         audioManager.outputBlock = ^(float * _Nonnull data, UInt32 numFrames, UInt32 numChannels) {
@@ -222,24 +223,25 @@ static BOOL DEBUG_NSLOG_TAG = YES;
 }
 
 - (void)audioCallbackFillData:(float *)outData numFrames:(UInt32)numFrames numChannels:(UInt32)numChannels {
-//    if (DEBUG_NSLOG_TAG) {
-//        NSLog(@"Method: %s", __FUNCTION__);
-//    }
-//    if (_buffered) {
-//        memset(outData, 0, numFrames * numChannels * sizeof(float));
-//        return;
-//    }
-
+    if (DEBUG_NSLOG_TAG) {
+        NSLog(@"Method: %s", __FUNCTION__);
+    }
+    if (_buffered) {
+        memset(outData, 0, numFrames * numChannels * sizeof(float));
+        return;
+    }
+    
     @autoreleasepool {
         while (numFrames > 0) {
             if (!_currentAudioFrame) {
                 @synchronized(_audioFrames) {
                     NSUInteger count = _audioFrames.count;
-                    NSLog(@"没有音频～～～ count === %lu", count);
                     if (count > 0) {
                         HHAudioFrame *frame = _audioFrames[0];
                         if (_decoder.validVideo) {
                             const CGFloat delta = _videoPosition - frame.position;
+                            _audioPostion = frame.position;
+                            NSLog(@"audio delta %f - _videoPosition %f, _audioPostion = %f ", delta ,_videoPosition, _audioPostion);
                             if (delta < -0.1) {
                                 memset(outData, 0, numFrames * numChannels * sizeof(float));
                                 break; // silence and exit
@@ -349,12 +351,12 @@ static BOOL DEBUG_NSLOG_TAG = YES;
             for (HHBaseFrame *frame in frames) {
                 if (frame.type == HhMovieFrameTypeAudio) {
                     [_audioFrames addObject:frame];
-                    _bufferedDuration += frame.duration; 
+                    _bufferedDuration += frame.duration;
                 }
             }
         }
     }
-    NSLog(@"playing = %d,  _bufferedDuration = %f , _maxBufferedDuration = %f",self.playing,_bufferedDuration, _maxBufferedDuration);
+//    NSLog(@"playing = %d,  _bufferedDuration = %f , _maxBufferedDuration = %f",self.playing,_bufferedDuration, _maxBufferedDuration);
     return self.playing && _bufferedDuration < _maxBufferedDuration; // _maxBufferedDuration 这个不理解
 }
  
@@ -364,16 +366,18 @@ static BOOL DEBUG_NSLOG_TAG = YES;
         NSLog(@"Method: %s", __FUNCTION__);
     }
     //1. 是否需要更新缓冲状态
-//    if (_buffered && ((_bufferedDuration > _minBufferedDuration) || _decoder.isEOF)) {
-//        _tickCorrectionTime = 0;
-//        _buffered = NO;
-//    }
+    if (_buffered && ((_bufferedDuration > _minBufferedDuration) || _decoder.isEOF)) {
+        _tickCorrectionTime = 0;
+        _buffered = NO;
+    }
     
     //2. 未缓冲完毕，则显示下一帧视频画面，并获取显示该画面的时间间隔
     CGFloat interval = 0;
-//    if (!_buffered) {
+    if (!_buffered) {
         interval = [self presentFrame];
-//    }
+    }else {
+        NSLog(@"tick_bufferedDuration == %f", _bufferedDuration);
+    }
      
     if (self.playing) { //3. 检查待解码数，
         const NSUInteger leftFrames = (_decoder.validVideo ? _videoFrames.count:0) + (_decoder.validAudio ? _audioFrames.count : 0);
@@ -383,9 +387,9 @@ static BOOL DEBUG_NSLOG_TAG = YES;
                 return;
             }
             
-//            if (_minBufferedDuration > 0 && !_buffered) {
-//                _buffered = YES;
-//            }
+            if (_minBufferedDuration > 0 && !_buffered) {
+                _buffered = YES;
+            }
         }
         if (!leftFrames || !(_bufferedDuration > _minBufferedDuration)) { // 没有未解码Frame了 + 已缓冲时长
             [self asyncDecoderFrames];
@@ -405,7 +409,6 @@ static BOOL DEBUG_NSLOG_TAG = YES;
     if (DEBUG_NSLOG_TAG) {
         NSLog(@"Method: %s", __FUNCTION__);
     }
-    
     CGFloat interval = 0;
     if (_decoder.validVideo) {
         HHVideoFrame *frame;
@@ -440,9 +443,9 @@ static BOOL DEBUG_NSLOG_TAG = YES;
     if (DEBUG_NSLOG_TAG) {
         NSLog(@"Method: %s", __FUNCTION__);
     }
-//    if (_buffered) {
-//        return 0;
-//    }
+    if (_buffered) {
+        return 0;
+    }
     const NSTimeInterval now = [NSDate timeIntervalSinceReferenceDate];
     
     if (!_tickCorrectionTime) {
@@ -451,10 +454,9 @@ static BOOL DEBUG_NSLOG_TAG = YES;
         return 0;
     }
     
-    NSTimeInterval dPosition = _videoPosition - _tickCorrectionPosition;
+    NSTimeInterval dPosition = _audioPostion - _tickCorrectionPosition;
     NSTimeInterval dTime = now - _tickCorrectionTime;
     NSTimeInterval correction = dPosition - dTime;
-//    NSLog(@"_videoPosition = %f, _tickCorrectionPosition = %f ,dPosition = %f, dTime = %f, correction =%f", _videoPosition, _tickCorrectionPosition,dPosition, dTime, correction );
     if (correction > 1.f || correction < -1.f) {
         correction = 0;
         _tickCorrectionTime = 0;
