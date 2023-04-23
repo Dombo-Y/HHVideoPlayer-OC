@@ -22,33 +22,32 @@ static void sessionInterruptionListener(void *inClientData, UInt32 inInterruptio
 static OSStatus renderCallback (void *inRefCon, AudioUnitRenderActionFlags    *ioActionFlags, const AudioTimeStamp * inTimeStamp, UInt32 inOutputBusNumber, UInt32 inNumberFrames, AudioBufferList* ioData);
 
 @interface HhAudioManagerImpl : HHAudioManager<HHAudioManager> {
-    BOOL                        _initialized;
-    BOOL                        _activated;
-    float                       *_outData;
-    AudioUnit                   _audioUnit;
+    BOOL    _initialized;
+    BOOL    _activated;
+    float   *_outData;
+    AudioUnit   _audioUnit;
     AudioStreamBasicDescription _outputFormat;
 }
 
-@property (readonly) UInt32             numOutputChannels;
-@property (readonly) Float64            samplingRate;
-@property (readonly) UInt32             numBytesPerSample;
-@property (readwrite) Float32           outputVolume;
-@property (readonly) BOOL               playing;
+@property (readonly) UInt32 numOutputChannels;
+@property (readonly) Float64    samplingRate;
+@property (readonly) UInt32 numBytesPerSample;
+@property (readwrite) Float32   outputVolume;
+@property (readonly) BOOL   playing;
 @property (readonly, strong) NSString   *audioRoute;
 
 @property (readwrite, copy) HhAudioManagerOutputBlock outputBlock;
 @property (readwrite) BOOL playAfterSessionEndInterruption;
 
-- (BOOL) activateAudioSession;
-- (void) deactivateAudioSession;
-- (BOOL) play;
-- (void) pause;
+- (BOOL)activateAudioSession;
+- (void)deactivateAudioSession;
+- (BOOL)play;
+- (void)pause;
 
-- (BOOL) checkAudioRoute;
-- (BOOL) setupAudio;
-- (BOOL) checkSessionProperties;
-- (BOOL) renderFrames: (UInt32) numFrames
-               ioData: (AudioBufferList *) ioData;
+- (BOOL)checkAudioRoute;
+- (BOOL)setupAudio;
+- (BOOL)checkSessionProperties;
+- (BOOL)renderFrames: (UInt32) numFrames ioData: (AudioBufferList *) ioData;
 @end
  
 @implementation HHAudioManager
@@ -144,12 +143,10 @@ static OSStatus renderCallback (void *inRefCon, AudioUnitRenderActionFlags    *i
 
     size = sizeof(_outputVolume);
     AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareOutputVolume,&size, &_outputVolume);
-    
     return YES;
 }
 
-- (BOOL)renderFrames: (UInt32) numFrames ioData: (AudioBufferList *) ioData
-{
+- (BOOL)renderFrames: (UInt32) numFrames ioData: (AudioBufferList *) ioData {
     for (int iBuffer=0; iBuffer < ioData->mNumberBuffers; ++iBuffer) {
         memset(ioData->mBuffers[iBuffer].mData, 0, ioData->mBuffers[iBuffer].mDataByteSize);
     }
@@ -196,8 +193,7 @@ static OSStatus renderCallback (void *inRefCon, AudioUnitRenderActionFlags    *i
     return _activated;
 }
 
-- (void)deactivateAudioSession {
-    
+- (void)deactivateAudioSession { 
     if (_activated) {
         [self pause];
         AudioUnitUninitialize(_audioUnit);
@@ -243,7 +239,6 @@ static void sessionPropertyListener(void * inClientData, AudioSessionPropertyID 
 }
  
 #pragma mark - C Method
-
 static void sessionInterruptionListener(void *inClientData, UInt32 inInterruption) {
     HhAudioManagerImpl *sm = (__bridge HhAudioManagerImpl *)inClientData;
     

@@ -222,8 +222,9 @@ static BOOL DEBUG_NSLOG_TAG = YES;
 }
 
 - (void)audioCallbackFillData:(float *)outData numFrames:(UInt32)numFrames numChannels:(UInt32)numChannels {
-    if (DEBUG_NSLOG_TAG) {
-    }
+//    if (DEBUG_NSLOG_TAG) {
+//        NSLog(@"Method: %s", __FUNCTION__);
+//    }
 //    if (_buffered) {
 //        memset(outData, 0, numFrames * numChannels * sizeof(float));
 //        return;
@@ -234,6 +235,7 @@ static BOOL DEBUG_NSLOG_TAG = YES;
             if (!_currentAudioFrame) {
                 @synchronized(_audioFrames) {
                     NSUInteger count = _audioFrames.count;
+                    NSLog(@"没有音频～～～ count === %lu", count);
                     if (count > 0) {
                         HHAudioFrame *frame = _audioFrames[0];
                         if (_decoder.validVideo) {
@@ -347,7 +349,7 @@ static BOOL DEBUG_NSLOG_TAG = YES;
             for (HHBaseFrame *frame in frames) {
                 if (frame.type == HhMovieFrameTypeAudio) {
                     [_audioFrames addObject:frame];
-                    _bufferedDuration += frame.duration;// 音频为什么要加
+                    _bufferedDuration += frame.duration; 
                 }
             }
         }
@@ -356,20 +358,6 @@ static BOOL DEBUG_NSLOG_TAG = YES;
     return self.playing && _bufferedDuration < _maxBufferedDuration; // _maxBufferedDuration 这个不理解
 }
  
-//- (BOOL)decodeFrames { // 在 pos 中使用
-//    if (DEBUG_NSLOG_TAG) {
-//        NSLog(@"Method: %s", __FUNCTION__);
-//    }
-//    NSArray *frames = nil;
-//    if (_decoder.validVideo || _decoder.validAudio) {
-//        frames = [_decoder decodeFrames:0];
-//    }
-//    if (frames.count) {
-//        return [self addFrames:frames];
-//    }
-//    return NO;
-//}
-
 #pragma mark -  loop Method 自调用循环  核心哦～～～
 - (void)tick {
     if (DEBUG_NSLOG_TAG) {

@@ -535,7 +535,7 @@ static BOOL DEBUG_NSLOG_TAG = NO;
     if (frame.duration == 0) {
         frame.duration = frame.samples.length / (sizeof(float) * numChannels * audioManager.samplingRate);
     }
-    return nil;
+    return frame;
 }
 
 #pragma mark - decodeFrames
