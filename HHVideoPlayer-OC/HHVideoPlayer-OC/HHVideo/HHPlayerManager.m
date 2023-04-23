@@ -177,7 +177,7 @@ static BOOL DEBUG_NSLOG_TAG = NO;
         return;
     }
     
-    if (_decoder.isEOF) {
+    if (_decoder.isEOF) { // 是否EOF，重播就seek
         [_decoder rePlayer];
     }
     
@@ -189,7 +189,7 @@ static BOOL DEBUG_NSLOG_TAG = NO;
       
     [self asyncDecoderFrames];// 4.开始解码视频帧
      
-    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, 0.1 * NSEC_PER_SEC);// 更新界面
+    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, 0.1 * NSEC_PER_SEC);
     dispatch_after(popTime, dispatch_get_main_queue(), ^{
         [self tick];
     });
@@ -240,8 +240,7 @@ static BOOL DEBUG_NSLOG_TAG = NO;
                         HHAudioFrame *frame = _audioFrames[0];
                         if (_decoder.validVideo) {
                             const CGFloat delta = _videoPosition - frame.position;
-                            _audioPostion = frame.position;
-                            NSLog(@"audio delta %f - _videoPosition %f, _audioPostion = %f ", delta ,_videoPosition, _audioPostion);
+                            _audioPostion = frame.position; 
                             if (delta < -0.1) {
                                 memset(outData, 0, numFrames * numChannels * sizeof(float));
                                 break; // silence and exit

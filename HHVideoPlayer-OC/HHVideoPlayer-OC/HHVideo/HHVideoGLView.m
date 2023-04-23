@@ -329,12 +329,10 @@ enum {
         if ([decoder setupVideoFrameFormat:HHVideoFrameFormatYUV]) {
 
             _renderer = [[HhMovieGLRenderer_YUV alloc] init];
-//            LoggerVideo(1, @"OK use YUV GL renderer");
 
         } else {
 
             _renderer = [[HhMovieGLRenderer_YUV alloc] init];
-//            LoggerVideo(1, @"OK use RGB GL renderer");
         }
                 
         CAEAGLLayer *eaglLayer = (CAEAGLLayer*) self.layer;
@@ -348,8 +346,6 @@ enum {
 
         if (!_context ||
             ![EAGLContext setCurrentContext:_context]) {
-
-//            LoggerVideo(0, @"failed to setup EAGLContext");
             self = nil;
             return nil;
         }
@@ -365,16 +361,12 @@ enum {
 
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE) {
-
-//            LoggerVideo(0, @"failed to make complete framebuffer object %x", status);
             self = nil;
             return nil;
         }
 
         GLenum glError = glGetError();
         if (GL_NO_ERROR != glError) {
-
-//            LoggerVideo(0, @"failed to setup GL %x", glError);
             self = nil;
             return nil;
         }
@@ -432,14 +424,6 @@ enum {
     glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &_backingHeight);
 
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (status != GL_FRAMEBUFFER_COMPLETE) {
-
-//        LoggerVideo(0, @"failed to make complete framebuffer object %x", status);
-
-    } else {
-
-//        LoggerVideo(1, @"OK setup GL framebuffer %d:%d", _backingWidth, _backingHeight);
-    }
 
     [self updateVertices];
     [self render: nil];
@@ -478,7 +462,6 @@ enum {
     GLint status;
     glGetProgramiv(_program, GL_LINK_STATUS, &status);
     if (status == GL_FALSE) {
-//        LoggerVideo(0, @"Failed to link program %d", _program);
         goto exit;
     }
 
@@ -495,7 +478,6 @@ exit:
         glDeleteShader(fragShader);
 
     if (result) {
-//        LoggerVideo(1, @"OK setup GL programm");
     } else {
         glDeleteProgram(_program);
         _program = 0;
@@ -560,7 +542,6 @@ exit:
     #if 0
         if (!validateProgram(_program))
         {
-//            LoggerVideo(0, @"Failed to validate program");
             return;
         }
     #endif

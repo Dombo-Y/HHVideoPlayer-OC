@@ -7,32 +7,16 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "90839684-8916-45FC-A8B0-5A2C856722FE"
+            uuid = "9DE9CD31-BAF8-428E-AA76-FE4BB182282C"
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "HHVideoPlayer-OC/HHVideo/HHVideoDecoder.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "67"
-            endingLineNumber = "67"
-            landmarkName = "HHVideoDecoder"
-            landmarkType = "3">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "739ECA32-F0A1-4AAE-8572-D16A39F496AB"
-            shouldBeEnabled = "Yes"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "HHVideoPlayer-OC/HHVideo/HHVideoDecoder.m"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "471"
-            endingLineNumber = "471"
-            landmarkName = "-handleVideoFrame"
+            startingLineNumber = "431"
+            endingLineNumber = "431"
+            landmarkName = "-handleVideoFrame:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
