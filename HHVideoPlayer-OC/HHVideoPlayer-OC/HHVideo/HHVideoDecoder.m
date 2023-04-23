@@ -60,15 +60,15 @@ static BOOL DEBUG_NSLOG_TAG = NO;
     return _videoFrameFormat == format;
 }
 
-- (BOOL) setupScaler {
-    [self closeScaler];
-    _pictureValid = avpicture_alloc(&_picture, AV_PIX_FMT_RGB24, _videoCodecCtx->width, _videoCodecCtx->height) == 0;
-    if (!_pictureValid) {
-        return NO;
-    }
-    _swsContext = sws_getCachedContext(_swsContext, _videoCodecCtx->width, _videoCodecCtx->height, _videoCodecCtx->pix_fmt, _videoCodecCtx->width, _videoCodecCtx->height, AV_PIX_FMT_RGB24, SWS_FAST_BILINEAR, NULL, NULL, NULL);
-    return _swsContext != NULL;
-}
+//- (BOOL) setupScaler {
+//    [self closeScaler];
+//    _pictureValid = avpicture_alloc(&_picture, AV_PIX_FMT_RGB24, _videoCodecCtx->width, _videoCodecCtx->height) == 0;
+//    if (!_pictureValid) {
+//        return NO;
+//    }
+//    _swsContext = sws_getCachedContext(_swsContext, _videoCodecCtx->width, _videoCodecCtx->height, _videoCodecCtx->pix_fmt, _videoCodecCtx->width, _videoCodecCtx->height, AV_PIX_FMT_RGB24, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+//    return _swsContext != NULL;
+//}
 
 #pragma mark - 外部方法
 + (id)videoDecoderWithContentPath:(NSString *)path {
@@ -264,19 +264,18 @@ static BOOL DEBUG_NSLOG_TAG = NO;
     if (DEBUG_NSLOG_TAG) {
         NSLog(@"Method: %s", __FUNCTION__);
     }
-//    AVCodecParameters *codecPara = _formatCtx->streams[videoStream]->codecpar;
-//    AVCodec *codec = avcodec_find_decoder(codecPara->codec_id);
-//    AVCodecContext *codecCtx = avcodec_alloc_context3(codec);
-    
-    AVCodecContext *codecCtx = _formatCtx->streams[videoStream]->codec;
-    AVCodec *codec = avcodec_find_decoder(codecCtx->codec_id);
-    
+    int ret = 0;
+    AVCodecParameters *codecPara = _formatCtx->streams[videoStream]->codecpar;
+    AVCodec *codec = avcodec_find_decoder(codecPara->codec_id);
+    AVCodecContext *codecCtx = avcodec_alloc_context3(codec);
+    ret = avcodec_parameters_to_context(codecCtx, codecPara); //将Parameters 中的参数给到codecCtx
+      
     if (!codec) {
         NSLog(@" decoder  not found ");
         return -1;
     }
-    
-    if (avcodec_open2(codecCtx, codec, NULL) < 0) {
+    ret = avcodec_open2(codecCtx, codec, NULL);
+    if (ret < 0) {
         NSLog(@" open codec error ");
         return -1;
     }
@@ -314,13 +313,13 @@ static BOOL DEBUG_NSLOG_TAG = NO;
     if (DEBUG_NSLOG_TAG) {
         NSLog(@"Method: %s", __FUNCTION__);
     }
-//    AVCodecParameters *codecPara = _formatCtx->streams[audioStream]->codecpar;
-//    AVCodec *codec = avcodec_find_decoder(codecPara->codec_id);
-//    AVCodecContext *codecCtx = avcodec_alloc_context3(codec);
+    int  ret = 0;
+    AVCodecParameters *codecPara = _formatCtx->streams[audioStream]->codecpar;
+    AVCodec *codec = avcodec_find_decoder(codecPara->codec_id);
+    AVCodecContext *codecCtx = avcodec_alloc_context3(codec);
+    ret = avcodec_parameters_to_context(codecCtx, codecPara);
     
-    AVCodecContext *codecCtx = _formatCtx->streams[audioStream]->codec;
     SwrContext *swrContext = NULL;
-    AVCodec *codec = avcodec_find_decoder(codecCtx->codec_id);
     
     if (!codec) {
         return -1;
@@ -328,11 +327,11 @@ static BOOL DEBUG_NSLOG_TAG = NO;
     if (avcodec_open2(codecCtx, codec, NULL) < 0) {
         return -1;
     }
+    
+    id<HHAudioManager> audioManager = [HHAudioManager audioManager];
      
-    if (!audioCodecIsSupported(codecCtx)) {
-        id<HHAudioManager> audioManager = [HHAudioManager audioManager];
-        swrContext = swr_alloc_set_opts(NULL, av_get_default_channel_layout(audioManager.numOutputChannels), AV_SAMPLE_FMT_S16, audioManager.samplingRate,av_get_default_channel_layout(codecCtx->channels),codecCtx->sample_fmt,codecCtx->sample_rate,
-                                            0, NULL);
+    if (!audioCodecIsSupported(codecCtx)) {// 是否需要重采样
+        swrContext = swr_alloc_set_opts(NULL, av_get_default_channel_layout(audioManager.numOutputChannels), AV_SAMPLE_FMT_S16, audioManager.samplingRate,av_get_default_channel_layout(codecCtx->channels),codecCtx->sample_fmt,codecCtx->sample_rate,0, NULL); 
         if (!swrContext || swr_init(swrContext)) {
             if (swrContext) {
                 swr_free(&swrContext);
@@ -453,23 +452,24 @@ static BOOL DEBUG_NSLOG_TAG = NO;
         yuvFrame.type = HhMovieFrameTypeVideo;
         frame = yuvFrame;
     }
-    else {
-        if (!_swsContext && ![self setupScaler]) {
-            return nil;
-        }
-        sws_scale(_swsContext, (const uint8_t **)_videoFrame->data, _videoFrame->linesize, 0, _videoCodecCtx->height, _picture.data, _picture.linesize);
-
-        HHVideoFrameRGB *rgbFrame = [[HHVideoFrameRGB alloc] init];
-        rgbFrame.linesize = _picture.linesize[0];
-        rgbFrame.rgb = [NSData dataWithBytes:_picture.data[0] length:rgbFrame.linesize * _videoCodecCtx->height];
-        frame = rgbFrame;
-    }
+//    else {
+//        if (!_swsContext && ![self setupScaler]) {
+//            return nil;
+//        }
+//        sws_scale(_swsContext, (const uint8_t **)_videoFrame->data, _videoFrame->linesize, 0, _videoCodecCtx->height, _picture.data, _picture.linesize);
+//
+//        HHVideoFrameRGB *rgbFrame = [[HHVideoFrameRGB alloc] init];
+//        rgbFrame.linesize = _picture.linesize[0];
+//        rgbFrame.rgb = [NSData dataWithBytes:_picture.data[0] length:rgbFrame.linesize * _videoCodecCtx->height];
+//        frame = rgbFrame;
+//    }
     
     frame.width = _videoCodecCtx->width;
     frame.height = _videoCodecCtx->height;
-    frame.position = av_frame_get_best_effort_timestamp(_videoFrame) * _videoTimeBase;
-
-    const int64_t frameDuration = av_frame_get_pkt_duration(_videoFrame);
+    int64_t best_time = av_frame_get_best_effort_timestamp(_videoFrame);
+    int64_t get_pk_duration = av_frame_get_pkt_duration(_videoFrame);
+    frame.position = best_time * _videoTimeBase; 
+    const int64_t frameDuration = get_pk_duration;
     if (frameDuration) {
         frame.duration = frameDuration * _videoTimeBase;
         frame.duration += _videoFrame->repeat_pict * _videoTimeBase *0.5;
@@ -626,6 +626,12 @@ static BOOL DEBUG_NSLOG_TAG = NO;
 static BOOL audioCodecIsSupported(AVCodecContext *audio) {
     if (audio->sample_fmt == AV_SAMPLE_FMT_S16) {
         id<HHAudioManager> audioManager = [HHAudioManager audioManager];
+        if (audioManager.samplingRate != audio->sample_rate) {
+            printf("采样率不匹配 samplingRate =%f, sample_rate =%d ",audioManager.samplingRate, audio->sample_rate);
+        }
+        if (audioManager.numOutputChannels != audio->channels) {
+            printf("通道不匹配 numOutputChannels = %u, channels = %d",(unsigned int)audioManager.numOutputChannels, audio->channels);
+        }
         return  (int)audioManager.samplingRate == audio->sample_rate &&
                 audioManager.numOutputChannels == audio->channels;
     }
