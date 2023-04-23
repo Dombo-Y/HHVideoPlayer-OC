@@ -96,8 +96,6 @@ static OSStatus renderCallback (void *inRefCon, AudioUnitRenderActionFlags    *i
 
     UInt32 sessionCategory = kAudioSessionCategory_MediaPlayback;
     AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(sessionCategory),  &sessionCategory);
-//    if (checkError(, "Couldn't set audio category"))
-//        return NO;
     AudioSessionAddPropertyListener(kAudioSessionProperty_AudioRouteChange,  sessionPropertyListener, (__bridge void *)(self));
     AudioSessionAddPropertyListener(kAudioSessionProperty_CurrentHardwareOutputVolume, sessionPropertyListener, (__bridge void *)(self));
     AudioSessionSetActive(YES);

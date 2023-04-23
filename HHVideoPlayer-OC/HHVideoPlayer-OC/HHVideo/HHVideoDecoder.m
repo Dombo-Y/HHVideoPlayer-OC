@@ -113,7 +113,7 @@ static BOOL DEBUG_NSLOG_TAG = NO;
 }
 
 - (BOOL)validVideo {
-    return _videoStream != -1;
+    return  _videoStream != -1;
 }
 
 - (NSUInteger)frameWidth {
@@ -305,8 +305,15 @@ static BOOL DEBUG_NSLOG_TAG = NO;
         return -1;
     }
     
-    id<HHAudioManager> audioManager = [HHAudioManager audioManager];
+    id<HHAudioManager> audioManager = [HHAudioManager audioManager]; 
     
+    int64_t num_out_channels = av_get_default_channel_layout(audioManager.numOutputChannels);
+    int64_t channels = av_get_default_channel_layout(codecCtx->channels);
+    
+    NSLog(@"音视频流参数------------------");
+    NSLog(@"音频通道数量:%lld , 音频采样格式:%lld, 音频采样率:%d",channels,codecCtx->sample_fmt,codecCtx->sample_rate);
+    NSLog(@"设备音视频参数:%d, 设备音视频采样率:%.3f", num_out_channels, audioManager.samplingRate);
+    NSLog(@"---------------");
     // 默认直接 重采样
     swrContext = swr_alloc_set_opts(NULL, av_get_default_channel_layout(audioManager.numOutputChannels), AV_SAMPLE_FMT_S16, audioManager.samplingRate,av_get_default_channel_layout(codecCtx->channels),codecCtx->sample_fmt,codecCtx->sample_rate,0, NULL);
     if (!swrContext || swr_init(swrContext)) {
@@ -425,7 +432,7 @@ static BOOL DEBUG_NSLOG_TAG = NO;
     }
     frame.width = _videoCodecCtx->width;
     frame.height = _videoCodecCtx->height;
-    int64_t best_time = packet.dts;// dts解码 时间戳、 pts 显示时间戳，pts 一定大于 dts
+    int64_t best_time = packet.pts;// dts解码 时间戳、 pts 显示时间戳，pts 一定大于 dts
     int64_t get_pk_duration = packet.duration;
     frame.position = best_time * _videoTimeBase;
     const int64_t frameDuration = get_pk_duration;
@@ -489,7 +496,7 @@ static BOOL DEBUG_NSLOG_TAG = NO;
     
     HHAudioFrame *frame = [[HHAudioFrame alloc] init];
      
-    int64_t best_time = packet.dts;
+    int64_t best_time = packet.pts;
     int64_t get_pk_duration = packet.duration;
     frame.position = best_time * _audioTimeBase;
     frame.duration = get_pk_duration * _audioTimeBase;
@@ -589,21 +596,6 @@ static BOOL DEBUG_NSLOG_TAG = NO;
 }
 
 #pragma mark - C Method
-//static BOOL audioCodecIsSupported(AVCodecContext *audio) {
-//    if (audio->sample_fmt == AV_SAMPLE_FMT_S16) {
-//        id<HHAudioManager> audioManager = [HHAudioManager audioManager];
-//        if (audioManager.samplingRate != audio->sample_rate) {
-//            printf("采样率不匹配 samplingRate =%f, sample_rate =%d ",audioManager.samplingRate, audio->sample_rate);
-//        }
-//        if (audioManager.numOutputChannels != audio->channels) {
-//            printf("通道不匹配 numOutputChannels = %u, channels = %d",(unsigned int)audioManager.numOutputChannels, audio->channels);
-//        }
-//        return  (int)audioManager.samplingRate == audio->sample_rate &&
-//                audioManager.numOutputChannels == audio->channels;
-//    }
-//
-//    return NO;
-//}
 static void avStreamFPSTimeBase(AVStream *st, CGFloat defaultTimeBase, CGFloat *pFPS, CGFloat *pTimeBase) {
     CGFloat fps, timebase;
     if (st->time_base.den && st->time_base.num) {

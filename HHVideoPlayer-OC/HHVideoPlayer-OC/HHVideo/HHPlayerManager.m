@@ -21,12 +21,9 @@
 #import "HHVideoGLView.h"
 #import "HHAudioManager.h"
 #import "HHVideoModel.h"
-
-#import "KxAudioManager.h"
-
+  
 static BOOL DEBUG_NSLOG_TAG = NO;
-
-
+ 
 #define LOCAL_MIN_BUFFERED_DURATION   0.2
 #define LOCAL_MAX_BUFFERED_DURATION   0.4
 #define NETWORK_MIN_BUFFERED_DURATION 2.0
@@ -177,9 +174,9 @@ static BOOL DEBUG_NSLOG_TAG = NO;
         return;
     }
     
-    if (_decoder.isEOF) { // 是否EOF，重播就seek
-        [_decoder rePlayer];
-    }
+//    if (_decoder.isEOF) { // 是否EOF，重播就seek
+//        [_decoder rePlayer];
+//    }
     
     self.playing = YES;
     _interrupted = NO;
@@ -209,17 +206,18 @@ static BOOL DEBUG_NSLOG_TAG = NO;
     if (DEBUG_NSLOG_TAG) {
         NSLog(@"Method: %s", __FUNCTION__);
     }
-    
+     
     id<HHAudioManager>audioManager = [HHAudioManager audioManager];
     if (on && _decoder.validAudio) {
         audioManager.outputBlock = ^(float * _Nonnull data, UInt32 numFrames, UInt32 numChannels) {
             [self audioCallbackFillData:data numFrames:numFrames numChannels:numChannels];
         };
         [audioManager play];
-    } else {
+    }else {
         [audioManager pause];
         audioManager.outputBlock = NULL;
     }
+     
 }
 
 - (void)audioCallbackFillData:(float *)outData numFrames:(UInt32)numFrames numChannels:(UInt32)numChannels {
@@ -230,7 +228,7 @@ static BOOL DEBUG_NSLOG_TAG = NO;
         memset(outData, 0, numFrames * numChannels * sizeof(float));
         return;
     }
-    
+//    NSLog(@"audioCallbackFillData == %f",_audioPostion);
     @autoreleasepool {
         while (numFrames > 0) {
             if (!_currentAudioFrame) {
@@ -243,7 +241,7 @@ static BOOL DEBUG_NSLOG_TAG = NO;
                             _audioPostion = frame.position; 
                             if (delta < -0.1) {
                                 memset(outData, 0, numFrames * numChannels * sizeof(float));
-                                break; // silence and exit
+                                break;
                             }
                             [_audioFrames removeObjectAtIndex:0];
                             if (delta > 0.1 && count > 1) {
@@ -267,11 +265,9 @@ static BOOL DEBUG_NSLOG_TAG = NO;
                 const NSUInteger frameSizeOf = numChannels * sizeof(float);
                 const NSUInteger bytesToCopy = MIN(numFrames * frameSizeOf, bytesLeft);
                 const NSUInteger framesToCopy = bytesToCopy / frameSizeOf;
-                
                 memcpy(outData, bytes, bytesToCopy);
                 numFrames -= framesToCopy;
                 outData += framesToCopy * numChannels;
-                
                 if (bytesToCopy < bytesLeft)
                     _currentAudioFramePos += bytesToCopy;
                 else
@@ -380,6 +376,7 @@ static BOOL DEBUG_NSLOG_TAG = NO;
      
     if (self.playing) { //3. 检查待解码数，
         const NSUInteger leftFrames = (_decoder.validVideo ? _videoFrames.count:0) + (_decoder.validAudio ? _audioFrames.count : 0);
+        NSLog(@"leftFrames == %lu", (unsigned long)leftFrames);
         if (0 == leftFrames) {
             if (_decoder.isEOF) {
                 [self pause];
@@ -396,6 +393,7 @@ static BOOL DEBUG_NSLOG_TAG = NO;
         
         const NSTimeInterval correction = [self tickCorrection];
         const NSTimeInterval time = MAX(interval + correction, 0.01);
+//        NSLog(@"time ======   %f", time);
         dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, time * NSEC_PER_SEC);
         dispatch_after(popTime, dispatch_get_main_queue(), ^{
             [self tick];
@@ -410,6 +408,7 @@ static BOOL DEBUG_NSLOG_TAG = NO;
     }
     CGFloat interval = 0;
     if (_decoder.validVideo) {
+        NSLog(@"presentFrame 读取视频帧");
         HHVideoFrame *frame;
         @synchronized (_videoFrames) {
             if (_videoFrames.count > 0) {
@@ -423,6 +422,7 @@ static BOOL DEBUG_NSLOG_TAG = NO;
         }
     } else if (_decoder.validAudio) {
         // 这里干啥的，不懂
+        NSLog(@"presentFrame 读取音频帧");
     }
     return interval;
 }
@@ -453,13 +453,15 @@ static BOOL DEBUG_NSLOG_TAG = NO;
         return 0;
     }
     
-    NSTimeInterval dPosition = _audioPostion - _tickCorrectionPosition;
+    NSTimeInterval dPosition = _videoPosition - _tickCorrectionPosition;
     NSTimeInterval dTime = now - _tickCorrectionTime;
     NSTimeInterval correction = dPosition - dTime;
     if (correction > 1.f || correction < -1.f) {
         correction = 0;
         _tickCorrectionTime = 0;
     }
+//    NSLog(@"correction == %f", correction);
+//    NSLog(@"_moviePosition = %f, dPosition = %f，dTime = %f,correction = %f, _tickCorrectionTime = %f",_videoPosition,dPosition,dTime,correction,_tickCorrectionTime);
     return correction;
 }
 

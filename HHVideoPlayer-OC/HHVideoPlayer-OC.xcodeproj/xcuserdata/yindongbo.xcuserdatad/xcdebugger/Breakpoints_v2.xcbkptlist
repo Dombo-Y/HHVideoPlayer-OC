@@ -7,16 +7,16 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "9DE9CD31-BAF8-428E-AA76-FE4BB182282C"
+            uuid = "6F84F822-65E4-4468-A5C9-0E6FE3F09DD9"
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "HHVideoPlayer-OC/HHVideo/HHVideoDecoder.m"
+            filePath = "HHVideoPlayer-OC/HHVideo/HHPlayerManager.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "431"
-            endingLineNumber = "431"
-            landmarkName = "-handleVideoFrame:"
+            startingLineNumber = "253"
+            endingLineNumber = "253"
+            landmarkName = "-audioCallbackFillData:numFrames:numChannels:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
