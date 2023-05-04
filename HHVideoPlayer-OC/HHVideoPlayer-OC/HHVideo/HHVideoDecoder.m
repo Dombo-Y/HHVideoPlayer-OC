@@ -434,7 +434,8 @@ static BOOL DEBUG_NSLOG_TAG = NO;
     frame.height = _videoCodecCtx->height;
     int64_t best_time = packet.pts;// dts解码 时间戳、 pts 显示时间戳，pts 一定大于 dts
     int64_t get_pk_duration = packet.duration;
-    frame.position = best_time * _videoTimeBase;
+//    frame.position = best_time * _videoTimeBase;
+    frame.position = av_frame_get_best_effort_timestamp(_videoFrame) * _videoTimeBase;
     const int64_t frameDuration = get_pk_duration;
     if (frameDuration) {
         frame.duration = frameDuration * _videoTimeBase;
